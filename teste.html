@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paschoalotto - Localizador de Informações em Excel</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background: url('image001.gif') no-repeat center center fixed;
+        background-size: cover;
+        color: #ffffff; /* Texto branco */
+    }
+    .container {
+        max-width: 800px;
+        margin: auto;
+        padding: 20px;
+        background-color: rgba(0, 0, 238, 0.8); /* Azul escuro com transparência */
+        border-radius: 15px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+        overflow: hidden; /* Para esconder a sombra fora dos limites */
+    }
+    h2 {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .logo {
+        width: 120px;
+        height: auto;
+        display: block;
+        margin: 0 auto 20px; /* Centraliza a logo */
+        border-radius: 10px; /* Cantos arredondados */
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* Sombra suave */
+        animation: floatLogo 3s ease-in-out infinite alternate; /* Animação do logo */
+    }
+    @keyframes floatLogo {
+        0% {
+            transform: translateY(0);
+        }
+        100% {
+            transform: translateY(-10px);
+        }
+    }
+    .title {
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .form-group {
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    input[type="file"], input[type="text"] {
+        width: calc(100% - 22px); /* Ajusta para evitar que o campo se expanda além do container */
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        transition: border-color 0.3s;
+        background-color: rgba(255, 255, 255, 0.8); /* Fundo branco com transparência */
+    }
+    input[type="file"]:focus, input[type="text"]:focus {
+        outline: none;
+        border-color: #1e3a8a; /* Azul escuro */
+    }
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #1e3a8a; /* Azul escuro */
+        color: #ffffff; /* Branco */
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        display: block;
+        margin: 0 auto; /* Centraliza o botão */
+    }
+    button:hover {
+        background-color: #3366FF; /* Azul mais escuro ao passar o mouse */
+    }
+    #results {
+        margin-top: 20px;
+        padding: 20px; /* Adiciona um espaço interno para os resultados */
+        background-color: rgba(255, 255, 255, 0.8); /* Fundo branco com transparência */
+        border-radius: 10px;
+        overflow-x: auto; /* Barra de rolagem horizontal caso o conteúdo seja grande */
+    }
+    #results table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    #results table th, #results table td {
+        padding: 8px 12px;
+        text-align: left;
+        border: 1px solid #ddd; /* Bordas suaves */
+    }
+    #results table th {
+        background-color: #f2f2f2; /* Fundo cinza claro para cabeçalho */
+        color: #333; /* Texto escuro */
+    }
+    #results table td {
+        background-color: #fff; /* Fundo branco para células */
+        color: #333; /* Texto escuro */
+    }
+    #results table td strong {
+        font-weight: bold; /* Texto em negrito */
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <img src="image001.gif" alt="Logo Paschoalotto" class="logo">
+        <div class="title">Paschoalotto - Localizador de Informações em Excel</div>
+        <div class="form-group">
+            <label for="fileInput">Selecione o arquivo Excel:</label>
+            <input type="file" id="fileInput" accept=".xlsx, .xls">
+        </div>
+        <div class="form-group">
+            <label for="searchTerm">Digite o nome ou CPF:</label>
+            <input type="text" id="searchTerm">
+        </div>
+        <button onclick="searchInExcel()">Buscar</button>
+        <div id="results"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script>
+        function searchInExcel() {
+            const fileInput = document.getElementById('fileInput');
+            const searchTermInput = document.getElementById('searchTerm');
+            const resultsDiv = document.getElementById('results');
+
+            const file = fileInput.files[0];
+            const searchTerm = searchTermInput.value.trim().toLowerCase();
+
+            if (!file) {
+                alert('Por favor, selecione um arquivo Excel.');
+                return;
+            }
+
+            if (searchTerm === '') {
+                alert('Por favor, digite um nome ou CPF para buscar.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const range = XLSX.utils.decode_range(sheet['!ref']);
+
+                let found = false;
+                let resultHtml = '';
+
+                for (let rowNum = range.s.r; rowNum <= range.e.r; rowNum++) {
+                    let rowHtml = '';
+                    let rowFound = false;
+
+                    for (let colNum = range.s.c; colNum <= range.e.c; colNum++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: rowNum, c: colNum });
+                        const cell = sheet[cellAddress];
+                        
+                        if (cell && cell.v.toString().toLowerCase().includes(searchTerm)) {
+                            rowFound = true;
+                            const value = cell.v;
+                            rowHtml += `<td><strong>${value}</strong></td>`;
+                        } else {
+                            rowHtml += `<td>${cell ? cell.v : ''}</td>`;
+                        }
+                    }
+
+                    if (rowFound) {
+                        resultHtml += `<tr>${rowHtml}</tr>`;
+                        found = true;
+                    }
+                }
+
+                if (found) {
+                    resultHtml = `<table>
+                                    <thead>
+                                        <tr>
+                                            ${getHeaderRow(sheet, range)}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${resultHtml}
+                                    </tbody>
+                                </table>`;
+                } else {
+                    resultHtml = '<p>Nenhum resultado encontrado para o termo buscado.</p>';
+                }
+
+                resultsDiv.innerHTML = resultHtml;
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function getHeaderRow(sheet, range) {
+            let headerRow = '';
+            for (let colNum = range.s.c; colNum <= range.e.c; colNum++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: colNum });
+                const cell = sheet[cellAddress];
+                headerRow += `<th>${cell ? cell.v : ''}</th>`;
+            }
+            return headerRow;
+        }
+    </script>
+</body>
+</html>
